@@ -1,73 +1,32 @@
-# React + TypeScript + Vite
+# open-reader
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A clean, minimal EPUB reader for Windows desktop.
 
-Currently, two official plugins are available:
+## Why
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+I wanted a decent way to read books on my desktop. Most e-reader apps are either outdated and unmaintained, or they push you toward a paid ecosystem where you basically have to buy in just to get something useful. I figured it would be a fun hobby project to build exactly what I wanted — nothing more, nothing less.
 
-## React Compiler
+## What it does
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Open and read EPUB files from your local machine
+- Tracks your reading progress per book
+- Clean dark-mode interface built for focused reading
 
-## Expanding the ESLint configuration
+## Platform
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Windows desktop only (built with Electron).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Tech stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+| Layer | Technology |
+|---|---|
+| Desktop shell | Electron |
+| Frontend | React 19 + TypeScript |
+| Routing | TanStack Router |
+| Styling | Tailwind CSS 4 |
+| Bundler | Vite |
+| Database | SQLite via Drizzle ORM + libsql |
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Status
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+This is a personal hobby project. I build it for myself in my spare time — features get added when I feel like it.
