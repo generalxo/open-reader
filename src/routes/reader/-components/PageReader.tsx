@@ -3,24 +3,23 @@ import ReaderView from './ReaderView'
 import type { SpineItem } from '../../../types/models/spineItem'
 import type { ChapterBundle } from '../../../types/models/chapterBundle'
 
-interface ReaderContainerProps {
+interface PageReaderProps {
 	bookPath: string
+	spine: SpineItem[]
 }
 
-export default function ReaderContainer({ bookPath }: ReaderContainerProps) {
-	const [spine, setSpine] = useState<SpineItem[]>([])
+export default function PageReader({ bookPath, spine }: PageReaderProps) {
 	const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
 	const [bundle, setBundle] = useState<ChapterBundle | null>(null)
 	const [themeStyles] = useState('')
 
 	useEffect(() => {
-		window.electronAPI.reader.getSpine(bookPath).then(setSpine).catch(console.error)
-	}, [bookPath])
-
-	useEffect(() => {
 		if (spine.length === 0) return
 		setBundle(null)
-		window.electronAPI.reader.getChapterBundle(bookPath, spine[currentChapterIndex].href).then(setBundle).catch(console.error)
+		window.electronAPI.reader
+			.getChapterBundle(bookPath, spine[currentChapterIndex].href)
+			.then(setBundle)
+			.catch(console.error)
 	}, [spine, currentChapterIndex, bookPath])
 
 	const goPrev = () => setCurrentChapterIndex((i) => Math.max(i - 1, 0))
@@ -43,7 +42,6 @@ export default function ReaderContainer({ bookPath }: ReaderContainerProps) {
 			</div>
 
 			<div className="flex items-center">
-
 				<button
 					onClick={goNext}
 					disabled={currentChapterIndex === spine.length - 1}

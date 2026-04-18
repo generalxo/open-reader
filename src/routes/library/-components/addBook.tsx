@@ -1,7 +1,8 @@
+
 import { CirclePlus } from "lucide-react";
 import { motion, useAnimationControls } from "motion/react";
 import type { Book } from "../../../types/models/book";
-import BookCard from "../cards/book-card/BookCard";
+import BookCard from "../../../ui/components/cards/book-card/BookCard";
 
 interface AddBookProps {
 	onBookAdded: (book: Book) => void

@@ -1,10 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { Link } from '@tanstack/react-router'
 import type { Book } from '../../types/models/book'
-import AddBook from '../../ui/components/addBook/AddBook'
-import BookCard from '../../ui/components/cards/book-card/BookCard'
+import AddBook from './-components/addBook'
 import LibraryNavBar from './-components/libraryNavbar'
+import LibraryBook from './-components/libraryBook'
 
 export const Route = createFileRoute('/library/')({
 	component: RouteComponent,
@@ -44,19 +43,9 @@ function RouteComponent() {
 			<LibraryNavBar />
 			<div className='grid grid-cols-6 gap-5 w-auto'>
 				<AddBook onBookAdded={handleBookAdded} />
-				{books.map((book) => {
-					const cover = coverImages.get(book.id)
-					return (
-						<Link key={book.id} to="/reader/$bookId" params={{ bookId: String(book.id) }}>
-							<BookCard className="overflow-hidden cursor-pointer">
-								{cover
-									? <img src={cover} alt={book.filename} className="w-full h-full object-cover" />
-									: <div className="w-full h-full bg-gray-700 flex items-center justify-center text-gray-400 text-xs text-center p-4">{book.filename}</div>
-								}
-							</BookCard>
-						</Link>
-					)
-				})}
+				{books.map((book) => (
+					<LibraryBook key={book.id} book={book} cover={coverImages.get(book.id)} />
+				))}
 			</div>
 		</div>
 	)

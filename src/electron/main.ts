@@ -24,14 +24,14 @@ app.on('ready', async () => {
 	});
 
 	mainWindow.webContents.on('will-navigate', (event, url) => {
-		const appUrl = isDev() ? 'http://localhost:1337' : `file://${path.join(app.getAppPath(), '/dist-react/index.html')}`
+		const appUrl = isDev() ? 'http://localhost:5173' : `file://${path.join(app.getAppPath(), '/dist-react/index.html')}`
 		if (!url.startsWith(appUrl)) event.preventDefault()
 	})
 
 	mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
 	if (isDev()) {
-		mainWindow.loadURL('http://localhost:1337');
+		mainWindow.loadURL('http://localhost:5173');
 	} else {
 		mainWindow.loadFile(path.join(app.getAppPath(), '/dist-react/index.html'));
 	}

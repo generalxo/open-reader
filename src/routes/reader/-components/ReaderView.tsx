@@ -24,9 +24,10 @@ interface ReaderViewProps {
 	html: string
 	styles: string[]
 	themeStyles: string
+	autoHeight?: boolean
 }
 
-export default function ReaderView({ html, styles, themeStyles }: ReaderViewProps) {
+export default function ReaderView({ html, styles, themeStyles, autoHeight }: ReaderViewProps) {
 	const hostRef = useRef<HTMLDivElement>(null)
 
 	useEffect(() => {
@@ -56,7 +57,7 @@ export default function ReaderView({ html, styles, themeStyles }: ReaderViewProp
 			shadow.appendChild(theme)
 		}
 
-		const handleClick = (e: MouseEvent) => {
+		const handleClick = (e: Event) => {
 			const target = (e.target as Element).closest('a')
 			if (!target) return
 			const href = target.getAttribute('href')
@@ -70,5 +71,5 @@ export default function ReaderView({ html, styles, themeStyles }: ReaderViewProp
 		return () => shadow.removeEventListener('click', handleClick)
 	}, [html, styles, themeStyles])
 
-	return <div ref={hostRef} className="w-full h-full overflow-auto" />
+	return <div ref={hostRef} className={autoHeight ? 'w-full' : 'w-full h-full overflow-auto'} />
 }
