@@ -38,13 +38,18 @@ function RouteComponent() {
 		setCoverImages((prev) => new Map(prev).set(book.id, cover))
 	}
 
+	function handleBookDeleted(id: number) {
+		setBooks((prev) => prev.filter((b) => b.id !== id))
+		setCoverImages((prev) => { const next = new Map(prev); next.delete(id); return next })
+	}
+
 	return (
 		<div className='flex flex-col w-full'>
 			<LibraryNavBar />
 			<div className='grid grid-cols-6 gap-5 w-auto'>
 				<AddBook onBookAdded={handleBookAdded} />
 				{books.map((book) => (
-					<LibraryBook key={book.id} book={book} cover={coverImages.get(book.id)} />
+					<LibraryBook key={book.id} book={book} cover={coverImages.get(book.id)} onDelete={handleBookDeleted} />
 				))}
 			</div>
 		</div>

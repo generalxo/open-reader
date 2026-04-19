@@ -16,8 +16,11 @@ export default function ScrollableReader({ bookPath, spine }: ScrollableReaderPr
 	const fetchedIndices = useRef<Set<number>>(new Set())
 
 	const loadChapter = useCallback(async (index: number): Promise<void> => {
-		if (index < 0 || index >= spine.length) return
-		if (fetchedIndices.current.has(index)) return
+		if (index < 0 || index >= spine.length)
+			return
+
+		if (fetchedIndices.current.has(index))
+			return
 
 		fetchedIndices.current.add(index)
 		try {

@@ -15,7 +15,8 @@ function RouteComponent() {
 		window.electronAPI.books.get(Number(bookId)).then(setBook).catch(console.error)
 	}, [bookId])
 
-	if (!book) return null
+	if (!book)
+		return null
 
 	return <ReaderContainer bookPath={book.path} />
 }

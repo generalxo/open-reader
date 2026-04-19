@@ -16,9 +16,11 @@ export default function ReaderContainer({ bookPath }: ReaderContainerProps) {
 		window.electronAPI.reader.getSpine(bookPath).then(setSpine).catch(console.error)
 	}, [bookPath])
 
-	if (spine.length === 0) return null
+	if (spine.length === 0)
+		return null
 
-	if (mode === 'scroll') return <ScrollableReader bookPath={bookPath} spine={spine} />
+	if (mode === 'scroll')
+		return <ScrollableReader bookPath={bookPath} spine={spine} />
 
 	return <PageReader bookPath={bookPath} spine={spine} />
 }
