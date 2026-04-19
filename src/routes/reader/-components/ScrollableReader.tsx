@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import ReaderView from './ReaderView'
+import ScrollableReaderView from './ScrollableReaderView'
 import type { SpineItem } from '../../../types/models/spineItem'
 import type { ChapterBundle } from '../../../types/models/chapterBundle'
 
-const WINDOW_RADIUS = 2
+const WINDOW_RADIUS = 1
 
 interface ScrollableReaderProps {
 	bookPath: string
@@ -13,11 +13,7 @@ interface ScrollableReaderProps {
 export default function ScrollableReader({ bookPath, spine }: ScrollableReaderProps) {
 	const [loadedBundles, setLoadedBundles] = useState<Map<number, ChapterBundle>>(new Map())
 
-	const currentIndexRef = useRef(0)
 	const fetchedIndices = useRef<Set<number>>(new Set())
-	const scrollContainerRef = useRef<HTMLDivElement>(null)
-	const chapterRefs = useRef<Map<number, HTMLDivElement>>(new Map())
-	const rafRef = useRef<number | null>(null)
 
 	const loadChapter = useCallback(async (index: number): Promise<void> => {
 		if (index < 0 || index >= spine.length) return
@@ -33,8 +29,6 @@ export default function ScrollableReader({ bookPath, spine }: ScrollableReaderPr
 	}, [bookPath, spine])
 
 	const updateWindow = useCallback(async (curr: number) => {
-		currentIndexRef.current = curr
-
 		setLoadedBundles((prev) => {
 			const next = new Map(prev)
 			let changed = false
@@ -52,68 +46,17 @@ export default function ScrollableReader({ bookPath, spine }: ScrollableReaderPr
 
 		loadChapter(curr + 1)
 		loadChapter(curr - 1)
-		loadChapter(curr + 2)
-		loadChapter(curr - 2)
 	}, [loadChapter])
 
 	useEffect(() => {
 		updateWindow(0)
 	}, [updateWindow])
 
-	useEffect(() => {
-		const container = scrollContainerRef.current
-		if (!container) return
-
-		const onScroll = () => {
-			if (rafRef.current !== null) return
-			rafRef.current = requestAnimationFrame(() => {
-				rafRef.current = null
-				const containerRect = container.getBoundingClientRect()
-				const midpoint = containerRect.top + containerRect.height / 2
-
-				let curr = 0
-				for (const [idx, el] of chapterRefs.current) {
-					const rect = el.getBoundingClientRect()
-					if (rect.top <= midpoint) curr = idx
-				}
-
-				if (curr !== currentIndexRef.current) {
-					updateWindow(curr)
-				}
-			})
-		}
-
-		container.addEventListener('scroll', onScroll, { passive: true })
-		return () => {
-			container.removeEventListener('scroll', onScroll)
-			if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
-		}
-	}, [updateWindow])
-
-	const registerChapterRef = useCallback((index: number) => (el: HTMLDivElement | null) => {
-		if (el) {
-			chapterRefs.current.set(index, el)
-		} else {
-			chapterRefs.current.delete(index)
-		}
-	}, [])
-
 	return (
-		<div ref={scrollContainerRef} className="h-full overflow-y-auto">
-			{spine.map((spineItem, index) => {
-				const bundle = loadedBundles.get(index)
-				return (
-					<div key={spineItem.id} ref={registerChapterRef(index)} className="w-full">
-						{bundle ? (
-							<ReaderView html={bundle.html} styles={bundle.styles} themeStyles="" autoHeight />
-						) : (
-							<div className="w-full min-h-screen flex items-center justify-center">
-								<span className="text-slate-400 text-sm">Loading…</span>
-							</div>
-						)}
-					</div>
-				)
-			})}
-		</div>
+		<ScrollableReaderView
+			spine={spine}
+			loadedBundles={loadedBundles}
+			onCurrentChapterChange={updateWindow}
+		/>
 	)
 }

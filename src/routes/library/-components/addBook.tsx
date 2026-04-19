@@ -1,4 +1,3 @@
-
 import { CirclePlus } from "lucide-react";
 import { motion, useAnimationControls } from "motion/react";
 import type { Book } from "../../../types/models/book";

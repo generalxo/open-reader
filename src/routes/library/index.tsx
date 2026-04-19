@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import type { Book } from '../../types/models/book'
-import AddBook from './-components/addBook'
-import LibraryNavBar from './-components/libraryNavbar'
-import LibraryBook from './-components/libraryBook'
+import AddBook from './-components/AddBook'
+import LibraryNavBar from './-components/LibraryNavbar'
+import LibraryBook from './-components/LibraryBook'
 
 export const Route = createFileRoute('/library/')({
 	component: RouteComponent,
