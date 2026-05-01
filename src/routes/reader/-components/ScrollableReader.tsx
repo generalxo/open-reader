@@ -47,19 +47,19 @@ export default function ScrollableReader({ bookPath, spine }: ScrollableReaderPr
 
 		await loadChapter(curr)
 
-		loadChapter(curr + 1)
-		loadChapter(curr - 1)
+		void loadChapter(curr + 1)
+		void loadChapter(curr - 1)
 	}, [loadChapter])
 
 	useEffect(() => {
-		updateWindow(0)
+		void updateWindow(0)
 	}, [updateWindow])
 
 	return (
 		<ScrollableReaderView
 			spine={spine}
 			loadedBundles={loadedBundles}
-			onCurrentChapterChange={updateWindow}
+			onCurrentChapterChange={(idx) => { void updateWindow(idx) }}
 		/>
 	)
 }

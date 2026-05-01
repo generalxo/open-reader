@@ -8,8 +8,6 @@ const READER_DEFAULTS = `
 		line-height: 1.6;
 	}
 	.chapter-content {
-		max-width: 70ch;
-		margin: 0 auto;
 		padding: 0 1.5rem;
 	}
 	.chapter-placeholder {
@@ -27,6 +25,10 @@ const READER_DEFAULTS = `
 		color: inherit;
 		text-decoration: none;
 		cursor: text;
+	}
+	img {
+		max-width: 100%;
+		height: auto;
 	}
 `
 
@@ -79,7 +81,7 @@ export default function ScrollableReaderView({ spine, loadedBundles, onCurrentCh
 			if (!href) return
 			e.preventDefault()
 			if (href.startsWith('http://') || href.startsWith('https://'))
-				window.electronAPI.native.openExternal(href)
+				void window.electronAPI.native.openExternal(href)
 		}
 		shadow.addEventListener('click', handleClick)
 

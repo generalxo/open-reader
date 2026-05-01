@@ -90,7 +90,9 @@ function getProcessedCss(zip: AdmZip, cache: BookCache, cssZipPath: string): str
 		return ''
 	}
 
-	const processed = rawCss.replace(/url\(['"]?([^'")\s]+)['"]?\)/gi, (_match, href) => {
+	const processed = rawCss
+		.replace(/\b(?:page-break-(?:before|after)|break-(?:before|after))\s*:[^;}\n]+;?/gi, '')
+		.replace(/url\(['"]?([^'")\s]+)['"]?\)/gi, (_match, href) => {
 		const zipPath = resolveZipPath(cssZipPath, href)
 		const ext = path.extname(zipPath).toLowerCase().slice(1)
 

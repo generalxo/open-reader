@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef } from "react";
 
 const READER_DEFAULTS = `
 	body, div {
@@ -18,58 +18,68 @@ const READER_DEFAULTS = `
 		text-decoration: none;
 		cursor: text;
 	}
-`
+`;
 
 interface ReaderViewProps {
-	html: string
-	styles: string[]
-	themeStyles: string
-	autoHeight?: boolean
+  html: string;
+  styles: string[];
+  themeStyles: string;
+  autoHeight?: boolean;
 }
 
-export default function ReaderView({ html, styles, themeStyles, autoHeight }: ReaderViewProps) {
-	const hostRef = useRef<HTMLDivElement>(null)
+export default function ReaderView({
+  html,
+  styles,
+  themeStyles,
+  autoHeight,
+}: ReaderViewProps) {
+  const hostRef = useRef<HTMLDivElement>(null);
 
-	useEffect(() => {
-		const host = hostRef.current
-		if (!host) return
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
 
-		const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
-		shadow.replaceChildren()
+    const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
+    shadow.replaceChildren();
 
-		for (const css of styles) {
-			const style = document.createElement('style')
-			style.textContent = css
-			shadow.appendChild(style)
-		}
+    for (const css of styles) {
+      const style = document.createElement("style");
+      style.textContent = css;
+      shadow.appendChild(style);
+    }
 
-		const defaults = document.createElement('style')
-		defaults.textContent = READER_DEFAULTS
-		shadow.appendChild(defaults)
+    const defaults = document.createElement("style");
+    defaults.textContent = READER_DEFAULTS;
+    shadow.appendChild(defaults);
 
-		const content = document.createElement('div')
-		content.innerHTML = html
-		shadow.appendChild(content)
+    const content = document.createElement("div");
+    content.innerHTML = html;
+    shadow.appendChild(content);
 
-		if (themeStyles) {
-			const theme = document.createElement('style')
-			theme.textContent = themeStyles
-			shadow.appendChild(theme)
-		}
+    if (themeStyles) {
+      const theme = document.createElement("style");
+      theme.textContent = themeStyles;
+      shadow.appendChild(theme);
+    }
 
-		const handleClick = (e: Event) => {
-			const target = (e.target as Element).closest('a')
-			if (!target) return
-			const href = target.getAttribute('href')
-			if (!href) return
-			e.preventDefault()
-			if (href.startsWith('http://') || href.startsWith('https://'))
-				window.electronAPI.native.openExternal(href)
-		}
+    const handleClick = (e: Event) => {
+      const target = (e.target as Element).closest("a");
+      if (!target) return;
+      const href = target.getAttribute("href");
+      if (!href) return;
+      e.preventDefault();
+      if (href.startsWith("http://") || href.startsWith("https://"))
+        void window.electronAPI.native.openExternal(href);
+    };
 
-		shadow.addEventListener('click', handleClick)
-		return () => shadow.removeEventListener('click', handleClick)
-	}, [html, styles, themeStyles])
+    shadow.addEventListener("click", handleClick);
+    return () => shadow.removeEventListener("click", handleClick);
+  }, [html, styles, themeStyles]);
 
-	return <div ref={hostRef} className={autoHeight ? 'w-full' : 'w-full h-full overflow-auto'} />
+  return (
+    <div
+      ref={hostRef}
+      className={autoHeight ? "w-full" : "w-full h-full overflow-auto"}
+    />
+  );
 }

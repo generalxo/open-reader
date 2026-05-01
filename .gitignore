@@ -37,6 +37,7 @@ dist-electron
 CLAUDE.md
 docs/
 .claude/
+.superpowers/
 
 # TanStack Router cache
 .tanstack/
