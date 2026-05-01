@@ -21,9 +21,11 @@ export default function LibraryBook({ book, cover, onDelete }: LibraryBookProps)
 		setDeleteModalOpen(false)
 	}
 
-	async function handleConfirmDelete() {
-		await window.electronAPI.books.remove(book.id)
-		onDelete(book.id)
+	function handleConfirmDelete() {
+		void (async () => {
+			await window.electronAPI.books.remove(book.id)
+			onDelete(book.id)
+		})()
 	}
 
 	return (

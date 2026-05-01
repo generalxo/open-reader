@@ -19,8 +19,8 @@ export default function PagedReader({ bookPath, spine }: PagedReaderProps) {
 	const lastWheelRef = useRef(0)
 
 	useEffect(() => {
-		setBundle(null)
 		void (async () => {
+			setBundle(null)
 			setBundle(await window.electronAPI.reader.getChapterBundle(bookPath, spine[chapterIndex].href))
 		})()
 	}, [bookPath, chapterIndex, spine])

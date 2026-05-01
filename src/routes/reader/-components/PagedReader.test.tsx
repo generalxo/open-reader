@@ -9,15 +9,17 @@ const spine: SpineItem[] = [
 ]
 
 beforeEach(() => {
-	;(window as any).electronAPI = {
-		reader: {
-			getChapterBundle: vi.fn().mockResolvedValue({
-				html: '<p>Chapter content</p>',
-				styles: [],
-			}),
+	Object.assign(window, {
+		electronAPI: {
+			reader: {
+				getChapterBundle: vi.fn().mockResolvedValue({
+					html: '<p>Chapter content</p>',
+					styles: [],
+				}),
+			},
+			native: { openExternal: vi.fn() },
 		},
-		native: { openExternal: vi.fn() },
-	}
+	})
 	vi.stubGlobal('ResizeObserver', class {
 		observe() {}
 		unobserve() {}

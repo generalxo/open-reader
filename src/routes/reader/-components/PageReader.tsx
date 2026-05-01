@@ -15,11 +15,10 @@ export default function PageReader({ bookPath, spine }: PageReaderProps) {
 
 	useEffect(() => {
 		if (spine.length === 0) return
-		setBundle(null)
-		window.electronAPI.reader
-			.getChapterBundle(bookPath, spine[currentChapterIndex].href)
-			.then(setBundle)
-			.catch(console.error)
+		void (async () => {
+			setBundle(null)
+			setBundle(await window.electronAPI.reader.getChapterBundle(bookPath, spine[currentChapterIndex].href))
+		})()
 	}, [spine, currentChapterIndex, bookPath])
 
 	const goPrev = () => setCurrentChapterIndex((i) => Math.max(i - 1, 0))
