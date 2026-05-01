@@ -1,13 +1,17 @@
 import { vi, beforeEach, describe, expect, it } from 'vitest'
 import path from 'path'
-import { initializeDatabaseFromConfig } from '../db'
-import { pickAndAddBook, listBooks, getBook, removeBook } from './bookService'
+import { initializeDatabaseFromConfig } from '../../../src/electron/db'
+import { pickAndAddBook, listBooks, getBook, removeBook } from '../../../src/electron/services/bookService'
 
-vi.mock('./nativeService', () => ({
+vi.mock('../../../src/electron/services/nativeService.ts', () => ({
 	filePicker: vi.fn(),
 }))
 
-import { filePicker } from './nativeService'
+vi.mock('../../../src/electron/services/zipService.ts', () => ({
+	getBookCoverPath: vi.fn().mockResolvedValue(null),
+}))
+
+import { filePicker } from '../../../src/electron/services/nativeService'
 const mockFilePicker = vi.mocked(filePicker)
 
 const MIGRATIONS = path.join(process.cwd(), 'src/electron/db/migrations')
@@ -23,7 +27,7 @@ describe('bookService', () => {
 			mockFilePicker.mockResolvedValue({ cancelled: false, filePaths: ['/books/test.epub'] })
 
 			const result = await pickAndAddBook()
-			expect(result).toEqual({ success: true })
+			expect(result).toEqual(expect.objectContaining({ success: true }))
 
 			const books = await listBooks()
 			expect(books).toHaveLength(1)

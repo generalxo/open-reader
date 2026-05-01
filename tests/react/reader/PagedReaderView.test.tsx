@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import PagedReaderView from './PagedReaderView'
-import type { ChapterBundle } from '../../../types/models/chapterBundle'
+import PagedReaderView from '../../../src/routes/reader/-components/PagedReaderView'
+import type { ChapterBundle } from '../../../src/types/models/chapterBundle'
 
 const bundle: ChapterBundle = {
 	html: '<p>Hello world</p>',

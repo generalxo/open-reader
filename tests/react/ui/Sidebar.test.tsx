@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { screen } from '@testing-library/react'
-import { renderWithRouter } from '../../../test/utils'
-import Sidebar from './Sidebar'
+import { renderWithRouter } from '../utils'
+import Sidebar from '../../../src/ui/components/sidebar/Sidebar'
 
 describe('Sidebar', () => {
   it('renders all nav item labels', async () => {

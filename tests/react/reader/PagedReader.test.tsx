@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import PagedReader from './PagedReader'
-import type { SpineItem } from '../../../types/models/spineItem'
+import PagedReader from '../../../src/routes/reader/-components/PagedReader'
+import type { SpineItem } from '../../../src/types/models/spineItem'
 
 const spine: SpineItem[] = [
 	{ id: 'ch1', href: 'OEBPS/ch1.xhtml' },

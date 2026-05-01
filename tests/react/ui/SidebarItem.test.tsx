@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { screen } from '@testing-library/react'
 import { BookIcon } from 'lucide-react'
-import { renderWithRouter } from '../../../test/utils'
-import SidebarItem from './SidebarItem'
+import { renderWithRouter } from '../utils'
+import SidebarItem from '../../../src/ui/components/sidebar/SidebarItem'
 
 describe('SidebarItem', () => {
   const item = { label: 'Library', to: '/library', icon: BookIcon }

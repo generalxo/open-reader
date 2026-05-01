@@ -8,8 +8,8 @@ export default defineConfig({
         test: {
           name: 'electron',
           environment: 'node',
-          include: ['src/electron/**/*.test.ts'],
-          setupFiles: ['src/electron/test/setup.ts'],
+          include: ['tests/node/**/*.test.ts'],
+          setupFiles: ['tests/node/setup.ts'],
         },
       }),
       defineProject({
@@ -18,9 +18,8 @@ export default defineConfig({
           name: 'react',
           environment: 'jsdom',
           globals: true,
-          include: ['src/**/*.test.{ts,tsx}'],
-          exclude: ['src/electron/**'],
-          setupFiles: ['src/test/setup.ts'],
+          include: ['tests/react/**/*.test.{ts,tsx}'],
+          setupFiles: ['tests/react/setup.ts'],
         },
       }),
     ],

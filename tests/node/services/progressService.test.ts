@@ -1,14 +1,18 @@
 import { vi, beforeEach, describe, expect, it } from 'vitest'
 import path from 'path'
-import { initializeDatabaseFromConfig } from '../db'
-import { pickAndAddBook, listBooks } from './bookService'
-import { saveProgress, getProgress } from './progressService'
+import { initializeDatabaseFromConfig } from '../../../src/electron/db'
+import { pickAndAddBook, listBooks } from '../../../src/electron/services/bookService'
+import { saveProgress, getProgress } from '../../../src/electron/services/progressService'
 
-vi.mock('./nativeService', () => ({
+vi.mock('../../../src/electron/services/nativeService.ts', () => ({
 	filePicker: vi.fn(),
 }))
 
-import { filePicker } from './nativeService'
+vi.mock('../../../src/electron/services/zipService.ts', () => ({
+	getBookCoverPath: vi.fn().mockResolvedValue(null),
+}))
+
+import { filePicker } from '../../../src/electron/services/nativeService'
 const mockFilePicker = vi.mocked(filePicker)
 
 const MIGRATIONS = path.join(process.cwd(), 'src/electron/db/migrations')
