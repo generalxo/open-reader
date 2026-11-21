@@ -20,6 +20,7 @@ app.on('ready', async () => {
 			preload: path.join(app.getAppPath(), '/dist-electron/electron/preload.js'),
 			contextIsolation: true,
 			nodeIntegration: false,
+			sandbox: true,
 		}
 	});
 

@@ -1,7 +1,35 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { tanstackRouter} from '@tanstack/router-plugin/vite'
 import tailwindcss from '@tailwindcss/vite';
+
+// No inline scripts or event handlers may run in the app document, so markup from a book
+// (e.g. <img onerror="...">) can't reach window.electronAPI.
+// Styles/images/fonts stay permissive enough for the current reader (inline <style>, data: URIs).
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self' data:",
+  "object-src 'none'",
+  "base-uri 'none'",
+].join('; ')
+
+// Build only: the dev server injects an inline React Refresh script that this policy would block.
+function contentSecurityPolicy(): Plugin {
+  return {
+    name: 'content-security-policy',
+    apply: 'build',
+    transformIndexHtml: () => [
+      {
+        tag: 'meta',
+        attrs: { 'http-equiv': 'Content-Security-Policy', content: CONTENT_SECURITY_POLICY },
+        injectTo: 'head-prepend',
+      },
+    ],
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -11,7 +39,8 @@ export default defineConfig({
       target: 'react',
       autoCodeSplitting: true,
     }),
-    react()
+    react(),
+    contentSecurityPolicy(),
   ],
   base: './',
   build: {
@@ -24,4 +53,3 @@ export default defineConfig({
     open: false,
   },
 });
-
