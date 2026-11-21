@@ -6,12 +6,14 @@ import tailwindcss from '@tailwindcss/vite';
 // No inline scripts or event handlers may run in the app document, so markup from a book
 // (e.g. <img onerror="...">) can't reach window.electronAPI.
 // Styles/images/fonts stay permissive enough for the current reader (inline <style>, data: URIs).
+// book: is the main process's protocol for files inside library books.
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
-  "font-src 'self' data:",
+  "style-src 'self' 'unsafe-inline' book:",
+  "img-src 'self' data: book:",
+  "font-src 'self' data: book:",
+  "connect-src 'self' book:",
   "object-src 'none'",
   "base-uri 'none'",
 ].join('; ')

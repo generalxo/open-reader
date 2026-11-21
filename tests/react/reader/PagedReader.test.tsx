@@ -4,8 +4,8 @@ import PagedReader from '../../../src/routes/reader/-components/PagedReader'
 import type { SpineItem } from '../../../src/types/models/spineItem'
 
 const spine: SpineItem[] = [
-	{ id: 'ch1', href: 'OEBPS/ch1.xhtml' },
-	{ id: 'ch2', href: 'OEBPS/ch2.xhtml' },
+	{ id: 'ch1', href: 'OEBPS/ch1.xhtml', size: 100 },
+	{ id: 'ch2', href: 'OEBPS/ch2.xhtml', size: 100 },
 ]
 
 beforeEach(() => {

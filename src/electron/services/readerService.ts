@@ -22,6 +22,7 @@ interface BookCache {
 	manifest: ManifestItem[]          // every file the OPF declares, hrefs relative to the OPF
 	opfDir: string                    // folder the OPF lives in, e.g. 'OEBPS/' (or '' at zip root)
 	processedCss: Map<string, string> // zip path -> CSS already processed by getProcessedCss
+	mediaTypes: Map<string, string>   // zip path -> media-type the manifest declares for it
 }
 
 // One entry per book path, built on first use and kept for the rest of the session.
@@ -49,6 +50,15 @@ function resolveZipPath(base: string, relative: string): string {
 		else if (part !== '.') resolved.push(part)
 	}
 	return resolved.join('/')
+}
+
+// Decodes '%20' style escapes in an href; malformed escapes are kept as written.
+function decodeHref(href: string): string {
+	try {
+		return decodeURI(href)
+	} catch {
+		return href
+	}
 }
 
 // Opens a book and parses its structure, or returns the cached result if already opened.
@@ -91,18 +101,25 @@ function getOrBuildCache(bookPath: string): BookCache | null {
 	}))
 
 	// Spine: each <itemref idref> points at a manifest id. Look it up and turn the
-	// href into a full zip path (opfDir + href) so callers can read it directly.
+	// href into a full, decoded zip path (opfDir + href) so callers can read it directly.
+	// size is the uncompressed byte length, used to weight chapters for total progress.
 	// Itemrefs with no matching manifest item are dropped. linear="no" is not checked.
 	const spineRefs: { '@_idref': string }[] = opf?.package?.spine?.itemref ?? []
 	const spine: SpineItem[] = spineRefs
 		.map((ref) => {
 			const manifestItem = manifest.find((m) => m.id === ref['@_idref'])
 			if (!manifestItem) return null
-			return { id: ref['@_idref'], href: opfDir + manifestItem.href }
+
+			const href = opfDir + decodeHref(manifestItem.href)
+
+			return { id: ref['@_idref'], href, size: zip.getEntry(href)?.header.size ?? 0 }
 		})
 		.filter((item): item is SpineItem => item !== null)
 
-	const cache: BookCache = { zip, spine, manifest, opfDir, processedCss: new Map() }
+	// Manifest hrefs are URLs ('my%20pic.png'), zip entry names are not ('my pic.png')
+	const mediaTypes = new Map(manifest.map((item) => [opfDir + decodeHref(item.href), item.mediaType]))
+
+	const cache: BookCache = { zip, spine, manifest, opfDir, processedCss: new Map(), mediaTypes }
 	bookCache.set(bookPath, cache)
 	return cache
 }
@@ -155,6 +172,21 @@ export async function getSpine(bookPath: string): Promise<SpineItem[]> {
 		return []
 
 	return cache.spine
+}
+
+// Used by the book:// protocol. Returns the raw bytes of one zip entry plus the media-type the
+// manifest declares for it (null if the file isn't in the manifest, e.g. META-INF files).
+// Returns null if the book can't be parsed or the entry doesn't exist.
+export function readBookEntry(bookPath: string, entryPath: string): { data: Buffer; mediaType: string | null } | null {
+	const cache = getOrBuildCache(bookPath)
+	if (!cache)
+		return null
+
+	const data = cache.zip.readFile(entryPath)
+	if (!data)
+		return null
+
+	return { data, mediaType: cache.mediaTypes.get(entryPath) ?? null }
 }
 
 // IPC 'reader:getChapterBundle'. Turns one chapter file (XHTML) into { html, styles }

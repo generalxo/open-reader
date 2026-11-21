@@ -6,14 +6,17 @@ import { registerZipHandlers } from './ipc/zipHandler.js';
 import { registerDbHandlers } from './ipc/dbHandler.js';
 import { registerNativeHandlers } from './ipc/nativeHandler.js';
 import { registerReaderHandlers } from './ipc/readerHandler.js';
+import { registerBookProtocol, registerBookScheme } from './protocol/bookProtocol.js';
 
 registerZipHandlers();
 registerDbHandlers();
 registerNativeHandlers();
 registerReaderHandlers();
+registerBookScheme();
 
 app.on('ready', async () => {
 	await initializeDatabase();
+	registerBookProtocol();
 
 	const mainWindow = new BrowserWindow({
 		webPreferences: {
