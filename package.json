@@ -63,6 +63,12 @@
     "wait-on": "^9.0.4"
   },
   "build": {
+    "win": {
+      "icon": "desktopIcon.png"
+    },
+    "linux": {
+      "icon": "desktopIcon.png"
+    },
     "extraResources": [
       {
         "from": "src/electron/db/migrations",

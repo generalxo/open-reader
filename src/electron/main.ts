@@ -19,6 +19,7 @@ app.on('ready', async () => {
 	registerBookProtocol();
 
 	const mainWindow = new BrowserWindow({
+		icon: path.join(app.getAppPath(), 'desktopIcon.png'),
 		webPreferences: {
 			preload: path.join(app.getAppPath(), '/dist-electron/electron/preload.js'),
 			contextIsolation: true,
