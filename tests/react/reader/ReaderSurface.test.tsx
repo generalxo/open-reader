@@ -10,6 +10,7 @@ const engine = vi.hoisted(() => {
 		open: vi.fn().mockResolvedValue(undefined),
 		next: vi.fn().mockResolvedValue(undefined),
 		prev: vi.fn().mockResolvedValue(undefined),
+		setSettings: vi.fn(),
 		destroy: vi.fn(),
 	}
 })
@@ -21,6 +22,7 @@ vi.mock('../../../src/reader/iframeEngine', () => ({
 		next: engine.next,
 		prev: engine.prev,
 		setFlow: vi.fn(),
+		setSettings: engine.setSettings,
 		onRelocate: (listener) => {
 			engine.listeners.add(listener)
 
@@ -31,6 +33,7 @@ vi.mock('../../../src/reader/iframeEngine', () => ({
 }))
 
 import ReaderSurface from '../../../src/routes/reader/-components/ReaderSurface'
+import { DEFAULT_SETTINGS } from '../../../src/reader/settings'
 
 const book: ReaderBook = { id: 1, spine: [{ id: 'ch1', href: 'OEBPS/ch1.xhtml', size: 100 }] }
 
@@ -54,15 +57,37 @@ beforeEach(() => {
 
 describe('ReaderSurface', () => {
 	it('opens the book in the engine and destroys it on unmount', () => {
-		const { unmount } = render(<ReaderSurface book={book} />)
+		const { unmount } = render(<ReaderSurface book={book} settings={DEFAULT_SETTINGS} />)
 
 		expect(engine.open).toHaveBeenLastCalledWith(book)
 		unmount()
 		expect(engine.destroy).toHaveBeenCalled()
 	})
 
+	it('applies settings before opening and pushes changes without recreating the engine', () => {
+		const { rerender } = render(<ReaderSurface book={book} settings={DEFAULT_SETTINGS} />)
+
+		expect(engine.setSettings).toHaveBeenCalledWith(DEFAULT_SETTINGS)
+		expect(engine.setSettings.mock.invocationCallOrder[0]).toBeLessThan(engine.open.mock.invocationCallOrder[0])
+
+		const bigger = { ...DEFAULT_SETTINGS, fontScale: 130 }
+		rerender(<ReaderSurface book={book} settings={bigger} />)
+
+		expect(engine.setSettings).toHaveBeenLastCalledWith(bigger)
+		expect(engine.destroy).not.toHaveBeenCalled()
+	})
+
+	it('does not turn the page when Space presses a focused button', () => {
+		render(<ReaderSurface book={book} settings={DEFAULT_SETTINGS} />)
+		relocate({})
+
+		fireEvent.keyDown(screen.getByLabelText('Next page'), { key: ' ' })
+
+		expect(engine.next).not.toHaveBeenCalled()
+	})
+
 	it('shows the page indicator and arrow state from relocate events', () => {
-		render(<ReaderSurface book={book} />)
+		render(<ReaderSurface book={book} settings={DEFAULT_SETTINGS} />)
 		relocate({ atStart: true, atEnd: false, page: { index: 2, count: 9 } })
 
 		expect(screen.getByText('3 / 9')).toBeInTheDocument()
@@ -71,7 +96,7 @@ describe('ReaderSurface', () => {
 	})
 
 	it('turns pages with the arrow buttons', () => {
-		render(<ReaderSurface book={book} />)
+		render(<ReaderSurface book={book} settings={DEFAULT_SETTINGS} />)
 		relocate({})
 
 		fireEvent.click(screen.getByLabelText('Next page'))
@@ -82,7 +107,7 @@ describe('ReaderSurface', () => {
 	})
 
 	it('turns pages with the keyboard, but not while typing', () => {
-		render(<><ReaderSurface book={book} /><input aria-label="search" /></>)
+		render(<><ReaderSurface book={book} settings={DEFAULT_SETTINGS} /><input aria-label="search" /></>)
 
 		fireEvent.keyDown(window, { key: 'ArrowRight' })
 		fireEvent.keyDown(window, { key: 'PageUp' })
@@ -94,7 +119,7 @@ describe('ReaderSurface', () => {
 	})
 
 	it('turns one page per wheel gesture', () => {
-		render(<ReaderSurface book={book} />)
+		render(<ReaderSurface book={book} settings={DEFAULT_SETTINGS} />)
 		const surface = screen.getByTestId('reader-surface')
 
 		fireEvent.wheel(surface, { deltaY: 40 })

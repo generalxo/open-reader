@@ -21,6 +21,10 @@ export function usePageTurnInput(containerRef: RefObject<HTMLElement | null>, ne
 			if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || isTypingTarget(e.target))
 				return
 
+			// Space on a focused button should press the button, not turn the page
+			if (e.key === ' ' && e.target instanceof HTMLButtonElement)
+				return
+
 			if (NEXT_KEYS.has(e.key)) {
 				e.preventDefault()
 				void next()

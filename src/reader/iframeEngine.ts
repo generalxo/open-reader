@@ -3,6 +3,7 @@ import { chapterSrcdoc, mountChapter, parseChapter, sanitizeChapter } from './ch
 import { createLocator, pageToProgression, progressionToPage } from './locator'
 import { isAtEnd, isAtStart, nextStep, prevStep, type NavigationStep } from './navigation'
 import { countPages, paginationCss, READER_DEFAULTS_CSS, type PageLayout } from './pagination'
+import { DEFAULT_SETTINGS, settingsCss, type ReaderSettings } from './settings'
 import type { ReaderBook, ReaderEngine, ReadingFlow, RelocateEvent } from './types'
 
 const MARGIN_X = 24
@@ -37,7 +38,9 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 	// instead of the current page number, so the same text stays in view and repeated resizes don't drift.
 	let anchor = 0
 
+	let settings: ReaderSettings = DEFAULT_SETTINGS
 	let layout: PageLayout | null = null
+	let settingsStyle: HTMLStyleElement | null = null
 	let layoutStyle: HTMLStyleElement | null = null
 	let loadToken = 0
 	let relayoutFrame: number | null = null
@@ -222,6 +225,11 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		else
 			doc.body.innerHTML = CHAPTER_ERROR_HTML
 
+		// Cascade: defaults < book CSS < user settings < layout
+		settingsStyle = doc.createElement('style')
+		settingsStyle.textContent = settingsCss(settings)
+		doc.head.appendChild(settingsStyle)
+
 		layoutStyle = doc.createElement('style')
 		doc.head.appendChild(layoutStyle)
 		detachDocument = attachDocument(doc)
@@ -282,6 +290,17 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 				return Promise.reject(new Error(`Reading flow '${flow}' is not supported yet`))
 
 			return Promise.resolve()
+		},
+
+		setSettings(nextSettings) {
+			settings = nextSettings
+			if (!settingsStyle)
+				return
+
+			settingsStyle.textContent = settingsCss(settings)
+			// Font size and line height change the page count; the anchor keeps the same text in view
+			if (pageCount !== null)
+				relayout()
 		},
 
 		onRelocate(listener) {

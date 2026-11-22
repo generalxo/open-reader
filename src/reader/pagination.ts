@@ -8,20 +8,13 @@ export interface PageLayout {
 	marginY: number // top/bottom padding of each page
 }
 
-// Until themes exist (step 5): readable on the app's dark background.
+// Baseline for books that leave these unset. Colours and user overrides come from settingsCss.
 export const READER_DEFAULTS_CSS = `
 html {
-	color-scheme: dark;
-	color: #e8e8e8;
-	background: transparent;
-	font-size: 1rem;
 	line-height: 1.6;
 }
 body {
 	margin: 0;
-}
-a {
-	color: #c87941;
 }
 `
 

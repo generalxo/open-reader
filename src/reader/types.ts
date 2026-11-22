@@ -1,4 +1,5 @@
 import type { SpineItem } from '../types/models/spineItem'
+import type { ReaderSettings } from './settings'
 
 // A position in a book that survives window resizes, font changes and switching between
 // paginated and scrolled flow. Page numbers can't do that, so positions are stored as the
@@ -34,6 +35,7 @@ export interface ReaderEngine {
 	next(): Promise<void>
 	prev(): Promise<void>
 	setFlow(flow: ReadingFlow): Promise<void>
+	setSettings(settings: ReaderSettings): void
 	onRelocate(listener: (event: RelocateEvent) => void): () => void
 	destroy(): void
 }

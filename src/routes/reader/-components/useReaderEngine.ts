@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createIframeEngine } from '../../../reader/iframeEngine'
+import type { ReaderSettings } from '../../../reader/settings'
 import type { ReaderBook, ReaderEngine, RelocateEvent } from '../../../reader/types'
 
 function openExternal(url: string) {
@@ -7,9 +8,11 @@ function openExternal(url: string) {
 }
 
 // Owns one engine per book: created on mount, destroyed on unmount or when the book changes.
-export function useReaderEngine(book: ReaderBook) {
+// Settings changes are pushed into the running engine without recreating it.
+export function useReaderEngine(book: ReaderBook, settings: ReaderSettings) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const engineRef = useRef<ReaderEngine | null>(null)
+	const settingsRef = useRef(settings)
 	const [relocation, setRelocation] = useState<RelocateEvent | null>(null)
 
 	useEffect(() => {
@@ -20,6 +23,7 @@ export function useReaderEngine(book: ReaderBook) {
 		const engine = createIframeEngine(container, { onExternalLink: openExternal })
 		const unsubscribe = engine.onRelocate(setRelocation)
 		engineRef.current = engine
+		engine.setSettings(settingsRef.current)
 		void engine.open(book)
 
 		return () => {
@@ -28,6 +32,11 @@ export function useReaderEngine(book: ReaderBook) {
 			engineRef.current = null
 		}
 	}, [book])
+
+	useEffect(() => {
+		settingsRef.current = settings
+		engineRef.current?.setSettings(settings)
+	}, [settings])
 
 	const next = useCallback(() => engineRef.current?.next() ?? Promise.resolve(), [])
 	const prev = useCallback(() => engineRef.current?.prev() ?? Promise.resolve(), [])
