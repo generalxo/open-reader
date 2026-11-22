@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { motion } from 'motion/react'
 import { THEMES, type ReaderSettings } from '../../../reader/settings'
 import type { ReaderBook } from '../../../reader/types'
 import { usePageTurnInput } from './usePageTurnInput'
 import { useReaderEngine } from './useReaderEngine'
+import { useReadingProgress } from './useReadingProgress'
 
 const ARROW_CLASS = 'absolute top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 disabled:opacity-0 cursor-pointer'
 
@@ -12,8 +14,14 @@ interface ReaderSurfaceProps {
 }
 
 export default function ReaderSurface({ book, settings }: ReaderSurfaceProps) {
-	const { containerRef, relocation, next, prev } = useReaderEngine(book, settings)
+	const { ready, start, record } = useReadingProgress(book)
+	const { containerRef, relocation, next, prev } = useReaderEngine(book, settings, start, ready)
 	usePageTurnInput(containerRef, next, prev)
+
+	useEffect(() => {
+		if (relocation)
+			record(relocation.locator)
+	}, [relocation, record])
 
 	const page = relocation?.page
 

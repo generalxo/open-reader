@@ -1,6 +1,7 @@
 import type { Book } from './types/models/book'
 import type { SpineItem } from './types/models/spineItem'
 import type { ChapterBundle } from './types/models/chapterBundle'
+import type { ReadingProgress } from './types/models/readingProgress'
 
 declare global {
 	interface Window {
@@ -22,8 +23,8 @@ declare global {
 				remove: (id: number) => Promise<void>
 			}
 			progress: {
-				save: (bookId: number, percentage: number, position: string) => Promise<unknown>
-				get: (bookId: number) => Promise<unknown>
+				save: (bookId: number, percentage: number, position: string) => Promise<void>
+				get: (bookId: number) => Promise<ReadingProgress | null>
 			}
 			native: {
 				filePicker: (pickFolder?: boolean) => Promise<{ cancelled: true } | { cancelled: false; filePaths: string[] } | { error: string }>
