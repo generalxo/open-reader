@@ -80,3 +80,11 @@ Ideas for what's next, in no particular order:
 ## Status
 
 This is a personal hobby project. I build it for myself in my spare time — features get added when I feel like it.
+
+## License
+
+open-reader is free software, licensed under the [GNU General Public License v3.0 or later](LICENSE).
+
+You're free to use, study, share and modify it. If you distribute it or a modified version, you must release the full source code under the same license, so it stays free for everyone.
+
+Copyright (C) 2026 Oliver Wasner

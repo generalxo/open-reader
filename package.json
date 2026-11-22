@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "main": "dist-electron/electron/main.js",
   "author": "Oliver Wasner",
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "dev": "npm-run-all --parallel dev:react dev:electron",
     "dev:react": "vite",
