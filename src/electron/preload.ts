@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	},
 	reader: {
 		getSpine: (bookPath: string) => ipcRenderer.invoke('reader:getSpine', bookPath),
+		getTocSource: (bookPath: string) => ipcRenderer.invoke('reader:getTocSource', bookPath),
 		getChapterBundle: (bookPath: string, chapterHref: string) =>
 			ipcRenderer.invoke('reader:getChapterBundle', bookPath, chapterHref),
 	},

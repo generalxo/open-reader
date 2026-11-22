@@ -52,3 +52,33 @@ export function parseBookUrl(url: string): BookUrl | null {
 
 	return { bookId: Number(hostMatch[1]), entryPath: segments.join('/') }
 }
+
+export interface BookHref {
+	entryPath: string
+	fragment: string | null // decoded '#id' part, without the '#'
+}
+
+// Resolves an href found inside a book file (a link in a chapter, an entry in the TOC) against
+// that file's own zip path. Returns null for links that leave the book (http:, mailto: ...).
+export function resolveBookHref(baseEntryPath: string, href: string): BookHref | null {
+	let url: URL
+	try {
+		url = new URL(href, buildBookUrl(0, baseEntryPath))
+	} catch {
+		return null
+	}
+
+	// bookId 0 is the placeholder base; anything else was an absolute book:// URL to another book
+	const target = parseBookUrl(url.href)
+	if (!target || target.bookId !== 0)
+		return null
+
+	let fragment: string | null = null
+	try {
+		fragment = url.hash ? decodeURIComponent(url.hash.slice(1)) : null
+	} catch {
+		fragment = url.hash.slice(1)
+	}
+
+	return { entryPath: target.entryPath, fragment: fragment || null }
+}

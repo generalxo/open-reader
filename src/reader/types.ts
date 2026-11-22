@@ -32,6 +32,7 @@ export interface ReaderBook {
 export interface ReaderEngine {
 	open(book: ReaderBook, at?: Locator): Promise<void>
 	goTo(target: Locator): Promise<void>
+	goToHref(href: string, fragment?: string | null): Promise<void> // TOC entries and links: zip path + element id
 	next(): Promise<void>
 	prev(): Promise<void>
 	setFlow(flow: ReadingFlow): Promise<void>

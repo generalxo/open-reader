@@ -12,6 +12,7 @@ const engine = vi.hoisted(() => {
 		prev: vi.fn().mockResolvedValue(undefined),
 		setSettings: vi.fn(),
 		setFlow: vi.fn().mockResolvedValue(undefined),
+		goToHref: vi.fn().mockResolvedValue(undefined),
 		destroy: vi.fn(),
 	}
 })
@@ -20,6 +21,7 @@ vi.mock('../../../src/reader/iframeEngine', () => ({
 	createIframeEngine: (): ReaderEngine => ({
 		open: engine.open,
 		goTo: vi.fn(),
+		goToHref: engine.goToHref,
 		next: engine.next,
 		prev: engine.prev,
 		setFlow: engine.setFlow,
@@ -37,6 +39,8 @@ import ReaderSurface from '../../../src/routes/reader/-components/ReaderSurface'
 import { DEFAULT_SETTINGS } from '../../../src/reader/settings'
 import { createLocator, serializeLocator } from '../../../src/reader/locator'
 import type { ReactElement } from 'react'
+
+const noToc = { toc: null, tocOpen: false, onTocClose: () => {} }
 
 const book: ReaderBook = { id: 1, spine: [{ id: 'ch1', href: 'OEBPS/ch1.xhtml', size: 100 }] }
 
@@ -64,7 +68,7 @@ beforeEach(() => {
 })
 
 // The engine only opens once the saved position has loaded
-async function renderSurface(ui: ReactElement = <ReaderSurface book={book} settings={DEFAULT_SETTINGS} />) {
+async function renderSurface(ui: ReactElement = <ReaderSurface book={book} settings={DEFAULT_SETTINGS} {...noToc} />) {
 	const result = render(ui)
 	await waitFor(() => expect(engine.open).toHaveBeenCalled())
 
@@ -101,19 +105,19 @@ describe('ReaderSurface', () => {
 		expect(engine.setSettings.mock.invocationCallOrder[0]).toBeLessThan(engine.open.mock.invocationCallOrder[0])
 
 		const bigger = { ...DEFAULT_SETTINGS, fontScale: 130 }
-		rerender(<ReaderSurface book={book} settings={bigger} />)
+		rerender(<ReaderSurface book={book} settings={bigger} {...noToc} />)
 
 		expect(engine.setSettings).toHaveBeenLastCalledWith(bigger)
 		expect(engine.destroy).not.toHaveBeenCalled()
 	})
 
 	it('sets the flow before opening and switches it without recreating the engine', async () => {
-		const { rerender } = await renderSurface(<ReaderSurface book={book} settings={{ ...DEFAULT_SETTINGS, flow: 'scrolled' }} />)
+		const { rerender } = await renderSurface(<ReaderSurface book={book} settings={{ ...DEFAULT_SETTINGS, flow: 'scrolled' }} {...noToc} />)
 
 		expect(engine.setFlow).toHaveBeenCalledWith('scrolled')
 		expect(engine.setFlow.mock.invocationCallOrder[0]).toBeLessThan(engine.open.mock.invocationCallOrder[0])
 
-		rerender(<ReaderSurface book={book} settings={{ ...DEFAULT_SETTINGS, flow: 'paginated' }} />)
+		rerender(<ReaderSurface book={book} settings={{ ...DEFAULT_SETTINGS, flow: 'paginated' }} {...noToc} />)
 
 		expect(engine.setFlow).toHaveBeenLastCalledWith('paginated')
 		expect(engine.destroy).not.toHaveBeenCalled()
@@ -124,6 +128,23 @@ describe('ReaderSurface', () => {
 		relocate({ page: null, locator: { ...createLocator(book.spine, 0, 0.42) } })
 
 		expect(screen.getByText('42%')).toBeInTheDocument()
+	})
+
+	it('jumps to a TOC entry, closes the panel and pauses page keys while open', async () => {
+		const toc = [{ label: 'Chapter 1', href: 'OEBPS/ch1.xhtml', fragment: 'start', children: [] }]
+		const onTocClose = vi.fn()
+		await renderSurface(<ReaderSurface book={book} settings={DEFAULT_SETTINGS} toc={toc} tocOpen onTocClose={onTocClose} />)
+		relocate({})
+
+		fireEvent.keyDown(window, { key: 'ArrowRight' })
+		expect(engine.next).not.toHaveBeenCalled()
+
+		fireEvent.click(screen.getByText('Chapter 1'))
+		expect(engine.goToHref).toHaveBeenCalledWith('OEBPS/ch1.xhtml', 'start')
+		expect(onTocClose).toHaveBeenCalled()
+
+		fireEvent.keyDown(window, { key: 'Escape' })
+		expect(onTocClose).toHaveBeenCalledTimes(2)
 	})
 
 	it('does not turn the page when Space presses a focused button', async () => {
@@ -156,7 +177,7 @@ describe('ReaderSurface', () => {
 	})
 
 	it('turns pages with the keyboard, but not while typing', async () => {
-		await renderSurface(<><ReaderSurface book={book} settings={DEFAULT_SETTINGS} /><input aria-label="search" /></>)
+		await renderSurface(<><ReaderSurface book={book} settings={DEFAULT_SETTINGS} {...noToc} /><input aria-label="search" /></>)
 
 		fireEvent.keyDown(window, { key: 'ArrowRight' })
 		fireEvent.keyDown(window, { key: 'PageUp' })

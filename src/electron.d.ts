@@ -2,6 +2,7 @@ import type { Book } from './types/models/book'
 import type { SpineItem } from './types/models/spineItem'
 import type { ChapterBundle } from './types/models/chapterBundle'
 import type { ReadingProgress } from './types/models/readingProgress'
+import type { TocSource } from './types/models/tocSource'
 
 declare global {
 	interface Window {
@@ -32,6 +33,7 @@ declare global {
 			}
 			reader: {
 				getSpine: (bookPath: string) => Promise<SpineItem[]>
+				getTocSource: (bookPath: string) => Promise<TocSource | null>
 				getChapterBundle: (bookPath: string, chapterHref: string) => Promise<ChapterBundle>
 			}
 		}

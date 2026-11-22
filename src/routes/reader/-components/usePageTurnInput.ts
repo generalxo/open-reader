@@ -15,8 +15,12 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 // Keyboard page turns anywhere in the window (the engine re-dispatches keys pressed inside the
 // book on the container, so they bubble here too) and wheel page turns over the container.
-export function usePageTurnInput(containerRef: RefObject<HTMLElement | null>, next: () => Promise<void>, prev: () => Promise<void>) {
+// `enabled` is false while something covers the book (e.g. the contents panel).
+export function usePageTurnInput(containerRef: RefObject<HTMLElement | null>, next: () => Promise<void>, prev: () => Promise<void>, enabled = true) {
 	useEffect(() => {
+		if (!enabled)
+			return
+
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || isTypingTarget(e.target))
 				return
@@ -37,11 +41,11 @@ export function usePageTurnInput(containerRef: RefObject<HTMLElement | null>, ne
 		window.addEventListener('keydown', onKeyDown)
 
 		return () => window.removeEventListener('keydown', onKeyDown)
-	}, [next, prev])
+	}, [next, prev, enabled])
 
 	useEffect(() => {
 		const container = containerRef.current
-		if (!container)
+		if (!container || !enabled)
 			return
 
 		let lastWheel = 0
@@ -59,5 +63,5 @@ export function usePageTurnInput(containerRef: RefObject<HTMLElement | null>, ne
 		container.addEventListener('wheel', onWheel, { passive: false })
 
 		return () => container.removeEventListener('wheel', onWheel)
-	}, [containerRef, next, prev])
+	}, [containerRef, next, prev, enabled])
 }

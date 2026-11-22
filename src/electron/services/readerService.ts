@@ -4,6 +4,7 @@ import path from 'path'
 import { SpineItem } from '../../types/models/spineItem'
 import { ManifestItem } from '../../types/models/manifestItem'
 import { ChapterBundle } from '../../types/models/chapterBundle'
+import { TocSource } from '../../types/models/tocSource'
 
 // Shared parser for container.xml and the OPF.
 // Attributes are kept and prefixed with '@_' (e.g. item['@_href']).
@@ -23,6 +24,7 @@ interface BookCache {
 	opfDir: string                    // folder the OPF lives in, e.g. 'OEBPS/' (or '' at zip root)
 	processedCss: Map<string, string> // zip path -> CSS already processed by getProcessedCss
 	mediaTypes: Map<string, string>   // zip path -> media-type the manifest declares for it
+	tocSource: TocSource | null       // nav document (EPUB 3) or NCX (EPUB 2), if the book has one
 }
 
 // One entry per book path, built on first use and kept for the rest of the session.
@@ -92,12 +94,13 @@ function getOrBuildCache(bookPath: string): BookCache | null {
 	const opfDir = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : ''
 
 	// Manifest: flatten the parsed <item> elements into { id, href, mediaType }
-	const manifestItems: { '@_id': string; '@_href': string; '@_media-type': string }[] =
+	const manifestItems: { '@_id': string; '@_href': string; '@_media-type': string; '@_properties'?: string }[] =
 		opf?.package?.manifest?.item ?? []
 	const manifest: ManifestItem[] = manifestItems.map((item) => ({
 		id: item['@_id'],
 		href: item['@_href'],
 		mediaType: item['@_media-type'],
+		properties: (item['@_properties'] ?? '').split(/\s+/).filter(Boolean),
 	}))
 
 	// Spine: each <itemref idref> points at a manifest id. Look it up and turn the
@@ -119,7 +122,18 @@ function getOrBuildCache(bookPath: string): BookCache | null {
 	// Manifest hrefs are URLs ('my%20pic.png'), zip entry names are not ('my pic.png')
 	const mediaTypes = new Map(manifest.map((item) => [opfDir + decodeHref(item.href), item.mediaType]))
 
-	const cache: BookCache = { zip, spine, manifest, opfDir, processedCss: new Map(), mediaTypes }
+	// TOC: EPUB 3 marks its nav document with properties="nav". EPUB 2 points at the NCX from
+	// <spine toc="ncx-id">; some books only declare the NCX by media-type. EPUB 3 books often ship
+	// both, and the nav document wins.
+	const navItem = manifest.find((item) => item.properties.includes('nav'))
+	const ncxId: string | undefined = opf?.package?.spine?.['@_toc']
+	const ncxItem = manifest.find((item) => item.id === ncxId)
+		?? manifest.find((item) => item.mediaType === 'application/x-dtbncx+xml')
+	const tocSource: TocSource | null = navItem
+		? { href: opfDir + decodeHref(navItem.href), type: 'nav' }
+		: ncxItem ? { href: opfDir + decodeHref(ncxItem.href), type: 'ncx' } : null
+
+	const cache: BookCache = { zip, spine, manifest, opfDir, processedCss: new Map(), mediaTypes, tocSource }
 	bookCache.set(bookPath, cache)
 	return cache
 }
@@ -187,6 +201,11 @@ export function readBookEntry(bookPath: string, entryPath: string): { data: Buff
 		return null
 
 	return { data, mediaType: cache.mediaTypes.get(entryPath) ?? null }
+}
+
+// IPC 'reader:getTocSource'. The renderer fetches and parses the file itself over book://.
+export async function getTocSource(bookPath: string): Promise<TocSource | null> {
+	return getOrBuildCache(bookPath)?.tocSource ?? null
 }
 
 // IPC 'reader:getChapterBundle'. Turns one chapter file (XHTML) into { html, styles }

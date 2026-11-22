@@ -45,6 +45,10 @@ export function useReaderEngine(book: ReaderBook, settings: ReaderSettings, star
 
 	const next = useCallback(() => engineRef.current?.next() ?? Promise.resolve(), [])
 	const prev = useCallback(() => engineRef.current?.prev() ?? Promise.resolve(), [])
+	const goToHref = useCallback(
+		(href: string, fragment?: string | null) => engineRef.current?.goToHref(href, fragment) ?? Promise.resolve(),
+		[],
+	)
 
-	return { containerRef, relocation, next, prev }
+	return { containerRef, relocation, next, prev, goToHref }
 }

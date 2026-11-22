@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { THEMES } from '../../../reader/settings'
 import type { ReadingFlow } from '../../../reader/types'
 import type { Book } from '../../../types/models/book'
@@ -9,6 +9,7 @@ import ScrollableReader from './ScrollableReader'
 import ReaderSurface from './ReaderSurface'
 import ReaderSettingsPanel from './ReaderSettingsPanel'
 import { useReaderSettings } from './useReaderSettings'
+import { useToc } from './useToc'
 
 // 'engine' is the new iframe reader, shown next to the old modes until it replaces them.
 // Its two buttons share one reader instance and only switch its flow, so the position carries over.
@@ -33,7 +34,10 @@ export default function ReaderContainer({ book }: ReaderContainerProps) {
 	const [spine, setSpine] = useState<SpineItem[]>([])
 	const [mode, setMode] = useState<ReaderChoice>('scroll')
 	const [settingsOpen, setSettingsOpen] = useState(false)
+	const [tocOpen, setTocOpen] = useState(false)
 	const { settings, updateSettings } = useReaderSettings()
+	const toc = useToc(book)
+	const closeToc = useCallback(() => setTocOpen(false), [])
 
 	useEffect(() => {
 		void (async () => {
@@ -52,6 +56,16 @@ export default function ReaderContainer({ book }: ReaderContainerProps) {
 	return (
 		<div className="flex flex-col h-full">
 			<div className="relative flex items-center justify-end gap-2 px-4 h-10 bg-[#13131f] border-b border-[#222] shrink-0">
+				{isEngine && (
+					<button
+						onClick={() => setTocOpen((open) => !open)}
+						aria-expanded={tocOpen}
+						className={`mr-auto ${TOGGLE_CLASS} ${tocOpen ? TOGGLE_ACTIVE_CLASS : TOGGLE_INACTIVE_CLASS}`}
+					>
+						Contents
+					</button>
+				)}
+
 				{MODES.map(({ mode: option, flow, label }) => {
 					const active = mode === option && (!flow || flow === settings.flow)
 
@@ -98,7 +112,9 @@ export default function ReaderContainer({ book }: ReaderContainerProps) {
 				>
 					{mode === 'scroll' && <ScrollableReader bookPath={book.path} spine={spine} />}
 					{mode === 'page' && <PagedReader bookPath={book.path} spine={spine} />}
-					{isEngine && <ReaderSurface book={readerBook} settings={settings} />}
+					{isEngine && (
+						<ReaderSurface book={readerBook} settings={settings} toc={toc} tocOpen={tocOpen} onTocClose={closeToc} />
+					)}
 				</div>
 			</div>
 		</div>

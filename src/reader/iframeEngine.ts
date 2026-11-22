@@ -1,6 +1,6 @@
-import { buildBookUrl } from '../shared/bookUrl'
+import { buildBookUrl, resolveBookHref } from '../shared/bookUrl'
 import { chapterSrcdoc, mountChapter, parseChapter, sanitizeChapter } from './chapterDocument'
-import { createLocator, pageToProgression, progressionToPage, progressionToScroll, scrollToProgression } from './locator'
+import { clamp01, createLocator, pageToProgression, progressionToPage, progressionToScroll, scrollToProgression } from './locator'
 import {
 	isAtEnd,
 	isAtStart,
@@ -126,6 +126,46 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 			edgeSince = Date.now()
 	}
 
+	// Where an element (by id, or legacy <a name>) sits in the laid-out chapter, as a progression,
+	// so jumping to it goes through the same anchor as every other position.
+	function fragmentProgression(fragment: string): number | null {
+		const doc = iframe.contentDocument
+		const win = doc?.defaultView
+		const target = doc?.getElementById(fragment) ?? doc?.getElementsByName(fragment)[0]
+		if (!doc || !win || !target || !layout)
+			return null
+
+		const rect = target.getBoundingClientRect()
+		if (flow === 'paginated') {
+			const page = Math.min(pageCount - 1, Math.max(0, Math.floor((rect.left + win.scrollX) / layout.width)))
+
+			return pageToProgression(page, pageCount)
+		}
+
+		const scrollHeight = doc.scrollingElement?.scrollHeight ?? 0
+
+		return scrollHeight > 0 ? clamp01((rect.top + win.scrollY) / scrollHeight) : null
+	}
+
+	function jumpToFragment(fragment: string | null | undefined) {
+		anchor = (fragment ? fragmentProgression(fragment) : null) ?? 0
+		relayout()
+	}
+
+	async function goToHref(href: string, fragment?: string | null) {
+		if (!book)
+			return
+
+		const index = book.spine.findIndex((item) => item.href === href)
+		if (index < 0)
+			return
+
+		if (index === spineIndex && loaded)
+			jumpToFragment(fragment)
+		else
+			await loadChapter(index, 0, fragment)
+	}
+
 	function relayout() {
 		const doc = iframe.contentDocument
 		const width = container.clientWidth
@@ -223,10 +263,23 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 				return
 
 			e.preventDefault()
-			const url = new URL(target.getAttribute('href') ?? '', doc.baseURI)
+			const href = target.getAttribute('href') ?? ''
+			const internal = book ? resolveBookHref(book.spine[spineIndex].href, href) : null
+			if (internal) {
+				// Footnotes, cross references and in-book TOCs; links to non-spine files are ignored
+				void goToHref(internal.entryPath, internal.fragment)
+				return
+			}
+
+			let url: URL
+			try {
+				url = new URL(href, doc.baseURI)
+			} catch {
+				return
+			}
+
 			if (url.protocol === 'http:' || url.protocol === 'https:')
 				options.onExternalLink?.(url.href)
-			// Links inside the book are handled once TOC/link navigation exists (step 8)
 		}
 
 		const onScroll = () => {
@@ -286,7 +339,7 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		}
 	}
 
-	async function loadChapter(index: number, progression: number) {
+	async function loadChapter(index: number, progression: number, fragment?: string | null) {
 		if (!book)
 			return
 
@@ -340,6 +393,10 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 
 		loaded = true
 		relayout()
+
+		// The element's position is only known once the chapter is laid out
+		if (fragment)
+			jumpToFragment(fragment)
 	}
 
 	async function applyStep(step: NavigationStep) {
@@ -377,6 +434,8 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 				await loadChapter(target.spineIndex, target.progression)
 			}
 		},
+
+		goToHref,
 
 		async next() {
 			if (!book || !loaded)
