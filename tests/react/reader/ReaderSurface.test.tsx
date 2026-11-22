@@ -11,6 +11,7 @@ const engine = vi.hoisted(() => {
 		next: vi.fn().mockResolvedValue(undefined),
 		prev: vi.fn().mockResolvedValue(undefined),
 		setSettings: vi.fn(),
+		setFlow: vi.fn().mockResolvedValue(undefined),
 		destroy: vi.fn(),
 	}
 })
@@ -21,7 +22,7 @@ vi.mock('../../../src/reader/iframeEngine', () => ({
 		goTo: vi.fn(),
 		next: engine.next,
 		prev: engine.prev,
-		setFlow: vi.fn(),
+		setFlow: engine.setFlow,
 		setSettings: engine.setSettings,
 		onRelocate: (listener) => {
 			engine.listeners.add(listener)
@@ -104,6 +105,25 @@ describe('ReaderSurface', () => {
 
 		expect(engine.setSettings).toHaveBeenLastCalledWith(bigger)
 		expect(engine.destroy).not.toHaveBeenCalled()
+	})
+
+	it('sets the flow before opening and switches it without recreating the engine', async () => {
+		const { rerender } = await renderSurface(<ReaderSurface book={book} settings={{ ...DEFAULT_SETTINGS, flow: 'scrolled' }} />)
+
+		expect(engine.setFlow).toHaveBeenCalledWith('scrolled')
+		expect(engine.setFlow.mock.invocationCallOrder[0]).toBeLessThan(engine.open.mock.invocationCallOrder[0])
+
+		rerender(<ReaderSurface book={book} settings={{ ...DEFAULT_SETTINGS, flow: 'paginated' }} />)
+
+		expect(engine.setFlow).toHaveBeenLastCalledWith('paginated')
+		expect(engine.destroy).not.toHaveBeenCalled()
+	})
+
+	it('shows overall book progress instead of pages in scrolled flow', async () => {
+		await renderSurface()
+		relocate({ page: null, locator: { ...createLocator(book.spine, 0, 0.42) } })
+
+		expect(screen.getByText('42%')).toBeInTheDocument()
 	})
 
 	it('does not turn the page when Space presses a focused button', async () => {

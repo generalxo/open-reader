@@ -9,14 +9,14 @@ describe('parseSettings', () => {
 	})
 
 	it('keeps valid values and clamps out-of-range ones', () => {
-		expect(parseSettings(JSON.stringify({ fontScale: 130, lineHeight: 1.8, pageWidth: 900, theme: 'sepia' })))
-			.toEqual({ fontScale: 130, lineHeight: 1.8, pageWidth: 900, theme: 'sepia' })
+		expect(parseSettings(JSON.stringify({ fontScale: 130, lineHeight: 1.8, pageWidth: 900, theme: 'sepia', flow: 'scrolled' })))
+			.toEqual({ fontScale: 130, lineHeight: 1.8, pageWidth: 900, theme: 'sepia', flow: 'scrolled' })
 		expect(parseSettings(JSON.stringify({ fontScale: 999, lineHeight: 9, pageWidth: 10 })))
-			.toEqual({ fontScale: 200, lineHeight: 3, pageWidth: 400, theme: 'dark' })
+			.toEqual({ fontScale: 200, lineHeight: 3, pageWidth: 400, theme: 'dark', flow: 'paginated' })
 	})
 
 	it('falls back per field for wrong types and unknown themes', () => {
-		expect(parseSettings(JSON.stringify({ fontScale: '120', lineHeight: 'x', theme: 'neon' })))
+		expect(parseSettings(JSON.stringify({ fontScale: '120', lineHeight: 'x', theme: 'neon', flow: 'sideways' })))
 			.toEqual(DEFAULT_SETTINGS)
 	})
 })

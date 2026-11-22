@@ -23,7 +23,11 @@ export default function ReaderSurface({ book, settings }: ReaderSurfaceProps) {
 			record(relocation.locator)
 	}, [relocation, record])
 
+	// Paginated: page within the chapter. Scrolled: how far through the whole book.
 	const page = relocation?.page
+	const indicator = page
+		? `${page.index + 1} / ${page.count}`
+		: relocation ? `${Math.round(relocation.locator.totalProgression * 100)}%` : null
 
 	return (
 		<div className="relative w-full h-full">
@@ -51,9 +55,9 @@ export default function ReaderSurface({ book, settings }: ReaderSurfaceProps) {
 				›
 			</motion.button>
 
-			{page && (
+			{indicator && (
 				<div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-xs opacity-40 select-none" style={{ color: THEMES[settings.theme].text }}>
-					{page.index + 1} / {page.count}
+					{indicator}
 				</div>
 			)}
 		</div>

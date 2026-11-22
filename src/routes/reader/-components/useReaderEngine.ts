@@ -24,6 +24,7 @@ export function useReaderEngine(book: ReaderBook, settings: ReaderSettings, star
 		const unsubscribe = engine.onRelocate(setRelocation)
 		engineRef.current = engine
 		engine.setSettings(settingsRef.current)
+		void engine.setFlow(settingsRef.current.flow)
 		void engine.open(book, start ?? undefined)
 
 		return () => {
@@ -37,6 +38,10 @@ export function useReaderEngine(book: ReaderBook, settings: ReaderSettings, star
 		settingsRef.current = settings
 		engineRef.current?.setSettings(settings)
 	}, [settings])
+
+	useEffect(() => {
+		void engineRef.current?.setFlow(settings.flow)
+	}, [settings.flow])
 
 	const next = useCallback(() => engineRef.current?.next() ?? Promise.resolve(), [])
 	const prev = useCallback(() => engineRef.current?.prev() ?? Promise.resolve(), [])

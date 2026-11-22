@@ -48,6 +48,32 @@ img, svg, video, figure, table {
 `
 }
 
+// Scrolled flow: the chapter is one long column that scrolls inside the iframe. The scrollbar is
+// hidden (progress is shown by the reader UI); Chromium's scroll anchoring keeps the text in place
+// when images above the viewport finish loading.
+export function scrolledCss({ height, marginX, marginY }: PageLayout): string {
+	const contentHeight = Math.max(1, height - marginY * 2)
+
+	return `
+html {
+	box-sizing: border-box !important;
+	height: auto !important;
+	margin: 0 !important;
+	padding: ${marginY}px ${marginX}px !important;
+	columns: auto !important;
+	overflow-x: hidden !important;
+	overflow-y: auto !important;
+	scrollbar-width: none;
+}
+img, svg, video, canvas {
+	max-width: 100% !important;
+	max-height: ${contentHeight}px !important;
+	object-fit: contain;
+	box-sizing: border-box;
+}
+`
+}
+
 export function countPages(scrollWidth: number, width: number): number {
 	if (width <= 0)
 		return 1

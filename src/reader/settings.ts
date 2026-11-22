@@ -1,5 +1,7 @@
 // User-facing reader settings and the CSS they turn into inside the chapter iframe.
 
+import type { ReadingFlow } from './types'
+
 export type ThemeId = 'dark' | 'sepia' | 'light'
 
 export interface ReaderSettings {
@@ -7,6 +9,7 @@ export interface ReaderSettings {
 	lineHeight: number | null // null = as the book sets it
 	pageWidth: number         // px, max width of the reading column
 	theme: ThemeId
+	flow: ReadingFlow         // pages or one scrolling chapter
 }
 
 interface Theme {
@@ -35,6 +38,7 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
 	lineHeight: null,
 	pageWidth: 700,
 	theme: 'dark',
+	flow: 'paginated',
 }
 
 const PAGE_WIDTH_RANGE = { min: 400, max: 1600 }
@@ -62,7 +66,7 @@ export function parseSettings(raw: string | null): ReaderSettings {
 	if (typeof data !== 'object' || data === null)
 		return DEFAULT_SETTINGS
 
-	const { fontScale, lineHeight, pageWidth, theme } = data as Record<string, unknown>
+	const { fontScale, lineHeight, pageWidth, theme, flow } = data as Record<string, unknown>
 	const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value)
 
 	return {
@@ -70,6 +74,7 @@ export function parseSettings(raw: string | null): ReaderSettings {
 		lineHeight: isNumber(lineHeight) ? clamp(lineHeight, 1, 3) : null,
 		pageWidth: isNumber(pageWidth) ? clamp(Math.round(pageWidth), PAGE_WIDTH_RANGE.min, PAGE_WIDTH_RANGE.max) : DEFAULT_SETTINGS.pageWidth,
 		theme: isThemeId(theme) ? theme : DEFAULT_SETTINGS.theme,
+		flow: flow === 'paginated' || flow === 'scrolled' ? flow : DEFAULT_SETTINGS.flow,
 	}
 }
 

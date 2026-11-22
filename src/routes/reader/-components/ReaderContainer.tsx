@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEMES } from '../../../reader/settings'
+import type { ReadingFlow } from '../../../reader/types'
 import type { Book } from '../../../types/models/book'
 import type { SpineItem } from '../../../types/models/spineItem'
 import type { ReadingMode } from '../../../types/models/readingMode'
@@ -9,13 +10,15 @@ import ReaderSurface from './ReaderSurface'
 import ReaderSettingsPanel from './ReaderSettingsPanel'
 import { useReaderSettings } from './useReaderSettings'
 
-// 'engine' is the new iframe reader, shown next to the old modes until it replaces them
+// 'engine' is the new iframe reader, shown next to the old modes until it replaces them.
+// Its two buttons share one reader instance and only switch its flow, so the position carries over.
 type ReaderChoice = ReadingMode | 'engine'
 
-const MODES: { mode: ReaderChoice; label: string }[] = [
+const MODES: { mode: ReaderChoice; flow?: ReadingFlow; label: string }[] = [
 	{ mode: 'scroll', label: 'Scroll' },
 	{ mode: 'page', label: 'Pages' },
-	{ mode: 'engine', label: 'Pages (new)' },
+	{ mode: 'engine', flow: 'paginated', label: 'Pages (new)' },
+	{ mode: 'engine', flow: 'scrolled', label: 'Scroll (new)' },
 ]
 
 const TOGGLE_CLASS = 'text-xs px-3 py-1 rounded border transition-colors'
@@ -49,15 +52,23 @@ export default function ReaderContainer({ book }: ReaderContainerProps) {
 	return (
 		<div className="flex flex-col h-full">
 			<div className="relative flex items-center justify-end gap-2 px-4 h-10 bg-[#13131f] border-b border-[#222] shrink-0">
-				{MODES.map(({ mode: option, label }) => (
-					<button
-						key={option}
-						onClick={() => setMode(option)}
-						className={`${TOGGLE_CLASS} ${mode === option ? TOGGLE_ACTIVE_CLASS : TOGGLE_INACTIVE_CLASS}`}
-					>
-						{label}
-					</button>
-				))}
+				{MODES.map(({ mode: option, flow, label }) => {
+					const active = mode === option && (!flow || flow === settings.flow)
+
+					return (
+						<button
+							key={label}
+							onClick={() => {
+								setMode(option)
+								if (flow)
+									updateSettings({ flow })
+							}}
+							className={`${TOGGLE_CLASS} ${active ? TOGGLE_ACTIVE_CLASS : TOGGLE_INACTIVE_CLASS}`}
+						>
+							{label}
+						</button>
+					)
+				})}
 
 				{isEngine && (
 					<button
