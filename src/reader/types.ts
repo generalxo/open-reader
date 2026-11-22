@@ -13,6 +13,14 @@ export interface Locator {
 
 export type ReadingFlow = 'paginated' | 'scrolled'
 
+// Sent whenever the visible position changes (page turn, chapter load, relayout).
+export interface RelocateEvent {
+	locator: Locator
+	atStart: boolean
+	atEnd: boolean
+	page: { index: number; count: number } | null // paginated flow only
+}
+
 export interface ReaderBook {
 	id: number
 	spine: SpineItem[]
@@ -26,6 +34,6 @@ export interface ReaderEngine {
 	next(): Promise<void>
 	prev(): Promise<void>
 	setFlow(flow: ReadingFlow): Promise<void>
-	onRelocate(listener: (locator: Locator) => void): () => void
+	onRelocate(listener: (event: RelocateEvent) => void): () => void
 	destroy(): void
 }

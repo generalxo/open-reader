@@ -15,7 +15,8 @@ const CONTENT_SECURITY_POLICY = [
   "font-src 'self' data: book:",
   "connect-src 'self' book:",
   "object-src 'none'",
-  "base-uri 'none'",
+  // The reader's chapter iframes inherit this policy and use <base href="book://..."> for relative URLs
+  "base-uri 'self' book:",
 ].join('; ')
 
 // Build only: the dev server injects an inline React Refresh script that this policy would block.

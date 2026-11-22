@@ -18,5 +18,5 @@ function RouteComponent() {
 	if (!book)
 		return null
 
-	return <ReaderContainer bookPath={book.path} />
+	return <ReaderContainer book={book} />
 }
