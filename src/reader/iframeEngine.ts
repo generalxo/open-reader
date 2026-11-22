@@ -1,5 +1,6 @@
 import { buildBookUrl, resolveBookHref } from '../shared/bookUrl'
 import { chapterSrcdoc, mountChapter, parseChapter, sanitizeChapter } from './chapterDocument'
+import { closestLink, isImage, linkHref } from './domUtils'
 import { clamp01, createLocator, pageToProgression, progressionToPage, progressionToScroll, scrollToProgression } from './locator'
 import {
 	isAtEnd,
@@ -65,6 +66,8 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 	let relayoutFrame: number | null = null
 	let scrollFrame: number | null = null
 	let detachDocument: (() => void) | null = null
+	// True while the engine itself is loading a chapter document into the iframe
+	let expectingLoad = false
 
 	function scrollPosition(): ScrollPosition {
 		const element = iframe.contentDocument?.scrollingElement
@@ -257,13 +260,15 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 				forwardWheel(e)
 		}
 
+		// Never let a click navigate the iframe itself: that would replace the chapter with a raw
+		// cross-origin book:// page the engine can no longer reach.
 		const onClick = (e: MouseEvent) => {
-			const target = e.target instanceof Element ? e.target.closest('a[href]') : null
+			const target = closestLink(e.target)
 			if (!target)
 				return
 
 			e.preventDefault()
-			const href = target.getAttribute('href') ?? ''
+			const href = linkHref(target) ?? ''
 			const internal = book ? resolveBookHref(book.spine[spineIndex].href, href) : null
 			if (internal) {
 				// Footnotes, cross references and in-book TOCs; links to non-spine files are ignored
@@ -303,7 +308,7 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		}
 
 		const onResourceLoad = (e: Event) => {
-			if (e.target instanceof HTMLImageElement)
+			if (isImage(e.target))
 				onContentResize()
 		}
 
@@ -315,6 +320,14 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		win?.addEventListener('scroll', onScroll)
 
 		return () => {
+			try {
+				removeListeners()
+			} catch {
+				// The document is already gone or no longer same-origin; its listeners went with it
+			}
+		}
+
+		function removeListeners() {
 			doc.removeEventListener('keydown', onKeyDown)
 			doc.removeEventListener('wheel', onWheel)
 			doc.removeEventListener('click', onClick)
@@ -360,6 +373,7 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		detachDocument = null
 
 		const loadedDocument = waitForLoad()
+		expectingLoad = true
 		iframe.srcdoc = chapterSrcdoc(url)
 		await loadedDocument
 		if (token !== loadToken)
@@ -410,6 +424,18 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 			await loadChapter(step.spineIndex, step.progression)
 		}
 	}
+
+	// Safety net: if the iframe ever loads a document the engine didn't ask for (a navigation that
+	// slipped past the click handler), put the current chapter back instead of losing the reader.
+	iframe.addEventListener('load', () => {
+		if (expectingLoad) {
+			expectingLoad = false
+			return
+		}
+
+		if (book)
+			void loadChapter(spineIndex, anchor)
+	})
 
 	const resizeObserver = new ResizeObserver(() => scheduleRelayout())
 	resizeObserver.observe(container)

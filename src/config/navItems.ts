@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { BookIcon, CogIcon, HouseIcon } from "lucide-react";
+import { BookIcon, HouseIcon } from "lucide-react";
 
 export interface NavItem {
 	label: string;
@@ -11,5 +11,4 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
 	{ label: "Home", to: "/", icon: HouseIcon },
 	{ label: "Library", to: "/library", icon: BookIcon },
-	{ label: "Testing", to: "/testing", icon: CogIcon }
 ]

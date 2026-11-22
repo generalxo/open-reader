@@ -1,21 +1,14 @@
 import type { Book } from './types/models/book'
 import type { SpineItem } from './types/models/spineItem'
-import type { ChapterBundle } from './types/models/chapterBundle'
 import type { ReadingProgress } from './types/models/readingProgress'
 import type { TocSource } from './types/models/tocSource'
 
 declare global {
 	interface Window {
 		electronAPI: {
-			test: {
-				sayHello: () => Promise<unknown>
-			}
 			zip: {
-				getRootFileData: (bookpath: string) => Promise<string | null>
 				getBookCoverPath: (bookpath: string) => Promise<string | null>
 				getBookCoverImage: (bookPath: string, coverPath: string) => Promise<string | null>
-				readEntry: (entryName: string, bookPath: string) => Promise<string>
-				zipTest: (bookPath: string) => Promise<string[]>
 			}
 			books: {
 				pickAndAdd: () => Promise<{ success: boolean; book?: Book; error?: string }>
@@ -34,7 +27,6 @@ declare global {
 			reader: {
 				getSpine: (bookPath: string) => Promise<SpineItem[]>
 				getTocSource: (bookPath: string) => Promise<TocSource | null>
-				getChapterBundle: (bookPath: string, chapterHref: string) => Promise<ChapterBundle>
 			}
 		}
 	}

@@ -8,16 +8,6 @@ const xmlParser = new XMLParser({
 	isArray: (name) => name === 'rootfile',
 })
 
-export async function zipTest(bookpath: string): Promise<string[]> {
-	const zipFile = new AdmZip(bookpath)
-	return zipFile.getEntries().map((entry) => entry.entryName)
-}
-
-export async function readEntry(entryName: string, bookpath: string): Promise<string> {
-	const zipFile = new AdmZip(bookpath)
-	return zipFile.readAsText(entryName) ?? ''
-}
-
 export async function getBookCoverPath(bookpath: string): Promise<string | null> {
 	const zipFile = new AdmZip(bookpath)
 	if (!zipFile)
@@ -86,22 +76,4 @@ export async function getBookCoverImage(bookPath: string, coverPath: string): Pr
 	const mime = mimeMap[ext] ?? 'image/jpeg'
 
 	return `data:${mime};base64,${buffer.toString('base64')}`
-}
-
-export async function getRootFileData(bookpath: string): Promise<string | null> {
-	const zipFile = new AdmZip(bookpath)
-	if (!zipFile)
-		return null
-
-	const containerEntry = zipFile.readAsText('META-INF/container.xml')
-	if (!containerEntry)
-		return null
-
-	const containerXml = xmlParser.parse(containerEntry)
-	const rootFilesArr: { '@_full-path': string }[] = containerXml?.container?.rootfiles?.rootfile ?? []
-	const rootFileName = rootFilesArr[0]?.['@_full-path'] ?? null
-	if (!rootFileName)
-		return null
-
-	return zipFile.readAsText(rootFileName)
 }
