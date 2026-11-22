@@ -1,8 +1,8 @@
 import AdmZip from 'adm-zip'
 import { XMLParser } from 'fast-xml-parser'
-import { SpineItem } from '../../types/models/spineItem'
-import { ManifestItem } from '../../types/models/manifestItem'
-import { TocSource } from '../../types/models/tocSource'
+import type { SpineItem } from '../../types/models/spineItem'
+import type { ManifestItem } from '../../types/models/manifestItem'
+import type { TocSource } from '../../types/models/tocSource'
 
 // Shared parser for container.xml and the OPF.
 // Attributes are kept and prefixed with '@_' (e.g. item['@_href']).

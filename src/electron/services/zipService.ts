@@ -2,6 +2,14 @@ import path from 'path';
 import AdmZip from 'adm-zip';
 import { XMLParser } from 'fast-xml-parser';
 
+// The parser returns a single object for one element and an array for several
+function toArray<T>(value: T | T[] | undefined | null): T[] {
+	if (value === undefined || value === null)
+		return []
+
+	return Array.isArray(value) ? value : [value]
+}
+
 const xmlParser = new XMLParser({
 	ignoreAttributes: false,
 	attributeNamePrefix: '@_',
@@ -33,19 +41,17 @@ export async function getBookCoverPath(bookpath: string): Promise<string | null>
 		return null
 
 	const opfDir = rootFileName.includes('/') ? rootFileName.substring(0, rootFileName.lastIndexOf('/') + 1) : ''
-	const manifestItems: { '@_id': string; '@_href': string; '@_properties'?: string }[] =
-		([] as any[]).concat(opf?.package?.manifest?.item ?? [])
+	const manifestItems = toArray<{ '@_id': string; '@_href': string; '@_properties'?: string }>(opf?.package?.manifest?.item)
 
 	let coverHref: string | null = null
 
 	if (version.startsWith('3')) {
-		const coverItem = manifestItems.find((item) => item?.['@_properties'] === 'cover-image')
+		const coverItem = manifestItems.find((item) => (item?.['@_properties'] ?? '').split(/\s+/).includes('cover-image'))
 		coverHref = coverItem?.['@_href'] ?? null
 	}
 
 	if (!coverHref) {
-		const metas: { '@_name': string; '@_content': string }[] =
-			([] as any[]).concat(opf?.package?.metadata?.meta ?? [])
+		const metas = toArray<{ '@_name': string; '@_content': string }>(opf?.package?.metadata?.meta)
 		const coverMeta = metas.find((meta) => meta?.['@_name'] === 'cover')
 		const coverId = coverMeta?.['@_content'] ?? null
 

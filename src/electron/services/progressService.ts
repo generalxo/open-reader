@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { getDb } from '../db/index'
-import { readingProgress, ReadingProgress } from '../db/schema'
+import { readingProgress } from '../db/schema'
+import type { ReadingProgress } from '../db/schema'
 
 export async function saveProgress(
 	bookId: number,

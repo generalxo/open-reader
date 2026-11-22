@@ -1,7 +1,8 @@
 import path from 'path'
 import { desc, eq } from 'drizzle-orm'
 import { getDb } from '../db/index'
-import { books, Book, NewBook } from '../db/schema'
+import { books } from '../db/schema'
+import type { Book, NewBook } from '../db/schema'
 import { filePicker } from './nativeService'
 import { getBookCoverPath } from './zipService'
 

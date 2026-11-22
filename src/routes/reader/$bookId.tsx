@@ -9,14 +9,18 @@ export const Route = createFileRoute('/reader/$bookId')({
 
 function RouteComponent() {
 	const { bookId } = Route.useParams()
-	const [book, setBook] = useState<Book | null>(null)
+	// undefined while loading, null if the book isn't in the library (or couldn't be read)
+	const [book, setBook] = useState<Book | null | undefined>(undefined)
 
 	useEffect(() => {
-		window.electronAPI.books.get(Number(bookId)).then(setBook).catch(console.error)
+		window.electronAPI.books.get(Number(bookId)).then(setBook).catch(() => setBook(null))
 	}, [bookId])
 
-	if (!book)
+	if (book === undefined)
 		return null
+
+	if (!book)
+		return <p className="p-6 text-sm text-[var(--color-text-muted)]">This book could not be found.</p>
 
 	return <ReaderContainer book={book} />
 }
