@@ -1,4 +1,5 @@
 import { buildBookUrl, resolveBookHref } from '../shared/bookUrl'
+import { buildCfi, cfiPathFromPoint, isRangePath, parseCfi, pointFromCfiPath, resolveCfiSpineIndex, type CfiPoint } from './cfi'
 import { chapterSrcdoc, mountChapter, parseChapter, sanitizeChapter } from './chapterDocument'
 import { closestLink, isImage, linkHref } from './domUtils'
 import { clamp01, createLocator, pageToProgression, progressionToPage, progressionToScroll, scrollToProgression } from './locator'
@@ -53,9 +54,12 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 	let loaded = false
 	let pageIndex = 0
 	let pageCount = 1
-	// Progression the reader navigated to. Relayouts (resize, settings, flow switch) map this back
-	// to a page or scroll offset, so the same text stays in view and repeated resizes don't drift.
+	// Where the reader navigated to. Relayouts (resize, settings, flow switch) map it back to a page
+	// or scroll offset, so the same text stays in view and repeated resizes don't drift.
+	// anchorCfi is the exact text at the start of the view; anchor (progression) is the fallback for
+	// when there is no CFI (old saved positions, pages without text) or it no longer resolves.
 	let anchor = 0
+	let anchorCfi: string | null = null
 	// Scrolled flow: when the current chapter edge (top or bottom) was reached, null if not at one
 	let edgeSince: number | null = null
 
@@ -85,11 +89,12 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 			return
 
 		const lastIndex = book.spine.length - 1
+		const locator = { ...createLocator(book.spine, spineIndex, anchor), ...(anchorCfi ? { cfi: anchorCfi } : {}) }
 		let event: RelocateEvent
 		if (flow === 'paginated') {
 			const position = { spineIndex, pageIndex, pageCount }
 			event = {
-				locator: createLocator(book.spine, spineIndex, anchor),
+				locator,
 				atStart: isAtStart(position),
 				atEnd: isAtEnd(position, book.spine.length),
 				page: { index: pageIndex, count: pageCount },
@@ -97,7 +102,7 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		} else {
 			const position = scrollPosition()
 			event = {
-				locator: createLocator(book.spine, spineIndex, anchor),
+				locator,
 				atStart: spineIndex === 0 && isScrolledToTop(position),
 				atEnd: spineIndex === lastIndex && isScrolledToBottom(position),
 				page: null,
@@ -129,16 +134,14 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 			edgeSince = Date.now()
 	}
 
-	// Where an element (by id, or legacy <a name>) sits in the laid-out chapter, as a progression,
-	// so jumping to it goes through the same anchor as every other position.
-	function fragmentProgression(fragment: string): number | null {
+	// Where a box (viewport coordinates inside the iframe) sits in the laid-out chapter, as a
+	// progression, so every kind of jump goes through the same anchor.
+	function rectProgression(rect: DOMRect): number | null {
 		const doc = iframe.contentDocument
 		const win = doc?.defaultView
-		const target = doc?.getElementById(fragment) ?? doc?.getElementsByName(fragment)[0]
-		if (!doc || !win || !target || !layout)
+		if (!doc || !win || !layout)
 			return null
 
-		const rect = target.getBoundingClientRect()
 		if (flow === 'paginated') {
 			const page = Math.min(pageCount - 1, Math.max(0, Math.floor((rect.left + win.scrollX) / layout.width)))
 
@@ -150,9 +153,109 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		return scrollHeight > 0 ? clamp01((rect.top + win.scrollY) / scrollHeight) : null
 	}
 
+	// Element ids, or legacy <a name> anchors
+	function fragmentProgression(fragment: string): number | null {
+		const doc = iframe.contentDocument
+		const target = doc?.getElementById(fragment) ?? doc?.getElementsByName(fragment)[0]
+
+		return target ? rectProgression(target.getBoundingClientRect()) : null
+	}
+
+	function pointRect(doc: Document, point: CfiPoint): DOMRect | null {
+		const { node, offset } = point
+		if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.CDATA_SECTION_NODE)
+			return (node as Element).getBoundingClientRect()
+
+		// The box of the character at the offset; empty text falls back to its parent's box
+		const length = (node as CharacterData).length
+		const range = doc.createRange()
+		range.setStart(node, Math.min(offset, length))
+		range.setEnd(node, Math.min(offset + 1, length))
+		const rects = range.getClientRects()
+
+		return rects.length > 0 ? rects[0] : node.parentElement?.getBoundingClientRect() ?? null
+	}
+
+	// Only point CFIs into the loaded chapter are used for positioning
+	function isCurrentChapterCfi(cfi: string | null | undefined): cfi is string {
+		const parsed = cfi ? parseCfi(cfi) : null
+
+		return !!book && !!parsed && !isRangePath(parsed.path) && resolveCfiSpineIndex(parsed, book.spine) === spineIndex
+	}
+
+	function cfiProgression(cfi: string): number | null {
+		const doc = iframe.contentDocument
+		const parsed = parseCfi(cfi)
+		const point = doc && parsed ? pointFromCfiPath(doc, parsed.path) : null
+		const rect = doc && point ? pointRect(doc, point) : null
+
+		return rect ? rectProgression(rect) : null
+	}
+
+	// Keeps the anchor on the exact text when the layout changed; drops a CFI that no longer resolves
+	function syncAnchorToCfi() {
+		if (!anchorCfi)
+			return
+
+		const progression = cfiProgression(anchorCfi)
+		if (progression === null)
+			anchorCfi = null
+		else
+			anchor = progression
+	}
+
+	function caretPoint(doc: Document, x: number, y: number): CfiPoint | null {
+		const caretDoc = doc as Document & {
+			caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null
+			caretRangeFromPoint?: (x: number, y: number) => Range | null
+		}
+
+		if (caretDoc.caretPositionFromPoint) {
+			const position = caretDoc.caretPositionFromPoint(x, y)
+
+			return position ? { node: position.offsetNode, offset: position.offset } : null
+		}
+
+		const range = caretDoc.caretRangeFromPoint?.(x, y)
+
+		return range ? { node: range.startContainer, offset: range.startOffset } : null
+	}
+
+	// CFI of the first text at the start of the view (top-left of the page in paginated flow,
+	// top of the viewport in scrolled flow). Probes down the left edge past blank lines.
+	function visibleStartCfi(): string | null {
+		const doc = iframe.contentDocument
+		if (!doc || !book || !layout)
+			return null
+
+		const x = layout.marginX + 1
+		const top = flow === 'paginated' ? layout.marginY : 0
+		const bottom = layout.height - (flow === 'paginated' ? layout.marginY : 0)
+
+		for (let y = top + 1; y < bottom; y += 16) {
+			const point = caretPoint(doc, x, y)
+			if (!point || point.node === doc.documentElement || point.node === doc.body)
+				continue
+
+			const path = cfiPathFromPoint(point.node, point.offset)
+			if (path)
+				return buildCfi(spineIndex, book.spine[spineIndex].id, path)
+		}
+
+		return null
+	}
+
+	// After the reader moved: remember the exact text now at the start of the view
+	function settle() {
+		anchorCfi = visibleStartCfi()
+		emit()
+	}
+
 	function jumpToFragment(fragment: string | null | undefined) {
 		anchor = (fragment ? fragmentProgression(fragment) : null) ?? 0
+		anchorCfi = null
 		relayout()
+		settle()
 	}
 
 	async function goToHref(href: string, fragment?: string | null) {
@@ -182,9 +285,11 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 			layoutStyle.textContent = paginationCss(layout)
 			// Reading scrollWidth forces a synchronous layout with the new CSS
 			pageCount = countPages(doc.documentElement.scrollWidth, width)
+			syncAnchorToCfi()
 			showPage(progressionToPage(anchor, pageCount))
 		} else {
 			layoutStyle.textContent = scrolledCss(layout)
+			syncAnchorToCfi()
 			const element = doc.scrollingElement
 			iframe.contentWindow?.scrollTo(0, element ? progressionToScroll(anchor, element.scrollHeight, element.clientHeight) : 0)
 			updateEdge()
@@ -302,6 +407,7 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 				scrollFrame = null
 				const position = scrollPosition()
 				anchor = scrollToProgression(position.scrollTop, position.scrollHeight)
+				anchorCfi = visibleStartCfi()
 				updateEdge()
 				emit()
 			})
@@ -352,7 +458,7 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		}
 	}
 
-	async function loadChapter(index: number, progression: number, fragment?: string | null) {
+	async function loadChapter(index: number, progression: number, fragment?: string | null, cfi?: string | null) {
 		if (!book)
 			return
 
@@ -362,6 +468,7 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		pageIndex = 0
 		pageCount = 1
 		anchor = progression
+		anchorCfi = null
 		edgeSince = null
 
 		const url = buildBookUrl(book.id, book.spine[index].href)
@@ -405,18 +512,26 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 		if (token !== loadToken)
 			return
 
+		// Positions are only known once the chapter is laid out. An exact CFI wins over a fragment,
+		// which wins over the progression.
 		loaded = true
+		anchorCfi = isCurrentChapterCfi(cfi) ? cfi : null
 		relayout()
 
-		// The element's position is only known once the chapter is laid out
-		if (fragment)
+		if (anchorCfi)
+			emit()
+		else if (fragment)
 			jumpToFragment(fragment)
+		else
+			settle()
 	}
 
 	async function applyStep(step: NavigationStep) {
 		if (step.type === 'page') {
 			anchor = pageToProgression(step.pageIndex, pageCount)
+			anchorCfi = null
 			showPage(step.pageIndex)
+			settle()
 		} else if (step.type === 'scroll') {
 			// The scroll listener updates the anchor and emits as the smooth scroll progresses
 			iframe.contentWindow?.scrollTo({ top: step.scrollTop, behavior: 'smooth' })
@@ -446,7 +561,7 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 			if (book.spine.length === 0)
 				return
 
-			await loadChapter(at?.spineIndex ?? 0, at?.progression ?? 0)
+			await loadChapter(at?.spineIndex ?? 0, at?.progression ?? 0, null, at?.cfi)
 		},
 
 		async goTo(target) {
@@ -455,9 +570,12 @@ export function createIframeEngine(container: HTMLElement, options: IframeEngine
 
 			if (target.spineIndex === spineIndex && loaded) {
 				anchor = target.progression
+				anchorCfi = isCurrentChapterCfi(target.cfi) ? target.cfi : null
 				relayout()
+				if (!anchorCfi)
+					settle()
 			} else {
-				await loadChapter(target.spineIndex, target.progression)
+				await loadChapter(target.spineIndex, target.progression, null, target.cfi)
 			}
 		},
 
